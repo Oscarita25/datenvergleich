@@ -1,0 +1,54 @@
+<head>
+    <script src="/staticfiles/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="/staticfiles/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/staticfiles/css/index.css">
+</head>
+
+<body>
+    
+    <!-- Header -->
+    <header class="align-items-center">
+        <p class="h1 text-center p-4">Datenvergleich <span class="badge">Web App</span></p>
+    </header>
+    
+    <section class="row">
+        <div class="col-1"></div>
+        <div class="col-10" id="content">
+            {% if not tables%}
+                <form class="row justify-content-center" action="{{ url_for('readfile')}}" method="post" enctype="multipart/form-data">
+                    <div class="form-group col-5">
+                    <label class="form-label"  for="file1">CSV file:</label>
+                    <input type="file" class="form-control form-control-file" id="file1" name="file1" accept=".csv">
+                    </div>
+                    <div class="form-group col-5">
+                    <label class="form-label" for="file2">XLSX file:</label>
+                    <input type="file" class="form-control form-control-file" id="file2" name="file2" accept=".xlsx">
+                    </div>
+                    <div class="col-12">
+                        <br>
+                    </div>
+                    <button type="submit" class="btn col-10">Submit</button>
+                </form>
+            {% else %}
+                <div class="row mt-3">
+                    <div class="col-1"></div>
+                    <div class="col-4 heading">
+                        <p class="display-6 text-center">Fehler</p>
+                        {{tables[0]|safe}}
+                    </div>
+                    <div class="col-2"></div>
+                    <div class="col-4 heading">
+                        <p class="display-6 text-center">Nicht Vorhanden</p>
+                        {{tables[1]|safe}}
+                    </div>
+                    <div class="col-1"></div>
+                </div>
+                <button class="btn" onclick="window.location.href='/'">zurück</button>
+                <br>
+            {% endif %}
+            <br>
+        </div>
+    </section>
+      
+    
+</body>

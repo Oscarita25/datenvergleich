@@ -1,0 +1,53 @@
+:root {
+    --primary-1: #E6E6E6;
+    --primary-2:#F1F1F1;
+    --primary-3: #D9D9D9;
+    --secondary: #FFC107;
+    --accent: #FFD761;
+    --tertiary: #D9D9D9;
+    --warn: #FF9999;
+    --info: #99FF99;
+}
+
+
+body {
+    background-color: var(--primary-2);
+}
+
+div#content {
+    border-radius: 10px;
+    background-color: var(--primary-1);;
+}
+
+.badge, .btn {
+    background-color: var(--secondary);
+}
+
+.btn:hover {
+    background-color: var(--accent);
+}
+
+.r-flag{
+    background-color: var(--primary-2);
+}
+
+.r-flag thead{
+    background-color: var(--warn);
+}
+
+.g-flag {
+    background-color: var(--primary-2);
+}
+
+.g-flag thead{
+    background-color: var(--info);
+}
+
+th, td, tr, tbody, thead{
+    text-align: center;
+    border-color: #404258;
+}
+
+button#customFile{
+    color: #404258;
+}
