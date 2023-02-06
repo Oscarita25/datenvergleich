@@ -1,11 +1,7 @@
-import datetime
-import hashlib
-import os
-
-import numpy as np
 from flask import Flask, render_template, request
 import pandas as pd
-from werkzeug.utils import secure_filename
+import datetime
+
 
 app = Flask(__name__, static_folder='staticfiles')
 UPLOAD_FOLDER = '.'
@@ -20,8 +16,18 @@ def readfile():
         file2 = request.files.getlist("file2")[0]
 
         if file1 and file2:
-            csv = pd.read_csv(file1, sep=";", encoding="latin-1")
+            try:
+                # Dateien einlesen
+                csv = pd.read_csv(file1, sep=";", encoding="latin-1")
+                xl = pd.read_excel(file2, engine="openpyxl", header=1)
+            except Exception as e:
+                return index(err=str(e))
+
+            # Zellen aus den Dateien auswaehlen
             csv = csv[["Buchungstag", "Betrag"]]
+            xl = xl[["Datum", "Umsatz Soll", "Umsatz Haben"]]
+
+            # Dateinamen und Datenformatierung beheben
             csv = csv.rename(columns={"Buchungstag": "Datum"})
             csv['Betrag'] = csv['Betrag'].str.replace(",", ".").astype(float)
 
@@ -30,57 +36,45 @@ def readfile():
             csv = csv.reset_index()
             csv = csv[["Datum", "Betrag"]]
 
-            xl = pd.read_excel(file2, engine="openpyxl", header=1)
-            xl = xl[["Datum", "Umsatz Soll", "Umsatz Haben"]]
-
-            xl["Betrag"] = xl["Umsatz Haben"].apply(
-                lambda x: x * -1 if pd.notna(x) and isinstance(x, (int, float)) else x)
+            # Soll und Haben zusammenfuehren zu "Betrag"
+            xl["Betrag"] = xl["Umsatz Haben"].apply(lambda x: x * -1 if pd.notna(x) and isinstance(x, (int, float)) else x)
             xl["Betrag"].fillna(xl["Umsatz Soll"], inplace=True)
             xl = xl.drop(["Umsatz Soll", "Umsatz Haben", ], axis=1)
 
+            # Betraege Summieren fuer jedes Datum
             result_csv = csv.groupby('Datum').sum().to_dict()['Betrag']
             result_xl = xl.groupby("Datum").sum().to_dict()["Betrag"]
 
-            #edge = pd.DataFrame(columns=["Datum", "Erwartet", "Tatsächlich"])
-            bad = pd.DataFrame(columns=["Datum", "Bank", "Datev"])
-            missmatch = pd.DataFrame(columns=["Datum", "Betrag"])
+            # 2 Tabellen erstellen fuer ungueltige und fehlende Datenpaare
+            invalid = pd.DataFrame(columns=["Datum", "Bank", "Datev"])
+            missing = pd.DataFrame(columns=["Datum", "Betrag"])
 
-            big_name = "Datev"
-            small_name = "Bank"
-            bigger_dict = result_xl
-            smaller_dict = result_csv
-            if len(result_csv.keys()) > len(result_xl.keys()):
-                big_name = "Bank"
-                small_name = "Datev"
-                bigger_dict = result_csv
-                smaller_dict = result_xl
-
-            for key, value in bigger_dict.items():
-                if key in smaller_dict:
-                    if smaller_dict[key] == value:
+            # vergleichen der datenpaare
+            for key, value in result_xl.items():
+                if key in result_csv:
+                    if result_csv[key] == value:
                         continue
-                    elif round(smaller_dict[key], 0) == round(value, 0):
+                    elif round(result_csv[key], 0) == round(value, 0):
                         continue
                     else:
-                        bad = bad.append({'Datum': key,big_name: value,small_name: smaller_dict[key]}, ignore_index=True)
+                        invalid = invalid.append({'Datum': key,"Datev": value,"Bank": result_csv[key]}, ignore_index=True)
                 else:
-                    missmatch = missmatch.append({'Datum': key,"Betrag": value}, ignore_index=True)
+                    missing = missing.append({'Datum': key, "Betrag": value}, ignore_index=True)
 
-            return tables([bad.to_html(classes="table data-sticky-header r-flag", index=False),missmatch.to_html(classes="table data-sticky-header  g-flag", index=False)])
-    return index()
+            return tables([invalid.to_html(classes="table data-sticky-header r-flag", index=False), missing.to_html(classes="table data-sticky-header  g-flag", index=False)])
+
+    return index(err="Bitte wählen Sie mindestens 2 Dateien aus.")
 
 
 @app.route('/table')
 def tables(t):
-    return render_template('./index.html',
-                           tables=t,
-                           titles=["Dringend"])
+    return render_template('./index.html', tables=t)
 
 
 @app.route('/', methods=["GET"])
-def index():
-    return render_template('./index.html', tables=None)
+def index(err=None):
+    return render_template('./index.html', tables=None, err=err)
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
