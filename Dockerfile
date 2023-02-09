@@ -1,17 +1,19 @@
-# Use an official Python image as the base image
-FROM python:3.11.1
+ARG python=python:3.9.16-slim-buster
+FROM ${python} AS build
 
-# Set the working directory in the container to /app
-WORKDIR /
+RUN python3 -m venv /venv
+ENV PATH=/venv/bin:$PATH
 
-# Copy the requirements.txt file to the container
-COPY requirements.txt /requirements.txt
-
-# Install the required packages in the container
+WORKDIR /app
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the project files to the container
-COPY . /
+FROM ${python} AS build
 
-# Specify the command to run when the container starts
-CMD [ "python", "main.py"]
+COPY --from=build /venv /venv
+ENV PATH=/venv/bin$PATH
+
+COPY . .
+
+ENTRYPOINT ["python"]
+CMD ["main.py"]
