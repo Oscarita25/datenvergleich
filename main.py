@@ -1,3 +1,4 @@
+import numpy
 from flask import Flask, render_template, request
 import pandas as pd
 import datetime
@@ -35,14 +36,20 @@ def readfile():
             csv = csv.iloc[::-1]
             csv = csv.reset_index()
             csv = csv[["Datum", "Betrag"]]
+            csv['Datum'] = pd.to_datetime(csv['Datum'], format='%d.%m.%Y', dayfirst=True)
+            csv = csv.sort_values(by='Datum')
+
 
             # Soll und Haben zusammenfuehren zu "Betrag"
             xl["Betrag"] = xl["Umsatz Haben"].apply(lambda x: x * -1 if pd.notna(x) and isinstance(x, (int, float)) else x)
             xl["Betrag"].fillna(xl["Umsatz Soll"], inplace=True)
             xl = xl.drop(["Umsatz Soll", "Umsatz Haben", ], axis=1)
+            xl['Datum'] = pd.to_datetime(xl['Datum'], format='%d.%m.%Y', dayfirst=True)
+            xl = xl.sort_values(by='Datum')
+
 
             # Betraege Summieren fuer jedes Datum
-            result_csv = csv.groupby('Datum').sum().to_dict()['Betrag']
+            result_csv = csv.groupby("Datum").sum().to_dict()['Betrag']
             result_xl = xl.groupby("Datum").sum().to_dict()["Betrag"]
 
             # 2 Tabellen erstellen fuer ungueltige und fehlende Datenpaare
@@ -61,6 +68,57 @@ def readfile():
                 else:
                     missing = missing.append({'Datum': key, "Betrag": value}, ignore_index=True)
 
+            invalid = invalid.sort_values(by='Datum')
+            missing = missing.sort_values(by='Datum')
+
+            csv_filtered = csv[csv['Datum'].isin(invalid['Datum'])]
+            xl_filtered = xl[xl['Datum'].isin(invalid['Datum'])]
+            csv_filtered = csv_filtered.reset_index(drop=True)
+            xl_filtered = xl_filtered.reset_index(drop=True)
+            # merge the dataframes
+
+            # combine date and amount as a single key
+            xl_filtered['key'] = xl_filtered['Datum'].astype(str) + xl_filtered['Betrag'].astype(str)
+            csv_filtered['key'] = csv_filtered['Datum'].astype(str) + csv_filtered['Betrag'].astype(str)
+
+            # find the keys that match between the two tables
+            matching_keys = set(xl_filtered['key']) & set(csv_filtered['key'])
+
+            # find the indices of the matching keys in each table
+            match_indices_1 = [i for i, key in enumerate(xl_filtered['key']) if key in matching_keys]
+            match_indices_2 = [i for i, key in enumerate(csv_filtered['key']) if key in matching_keys]
+
+            # delete the rows with matching keys from both tables
+            xl_filtered = xl_filtered.drop(match_indices_1)
+            csv_filtered = csv_filtered.drop(match_indices_2)
+
+            # find the keys with no matches
+            non_matching_keys = set(xl_filtered['key']) ^ set(csv_filtered['key'])
+
+            # create a list of rows with no matches
+            no_matches = pd.DataFrame(columns=['Datum', 'Betrag'])
+            for key in non_matching_keys:
+                if key in set(xl_filtered['key']):
+                    no_matches = no_matches.append(xl_filtered.loc[xl_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
+                else:
+                    no_matches = no_matches.append(csv_filtered.loc[csv_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
+
+            no_matches['Datum'] = pd.to_datetime(no_matches['Datum'], format='%d-%m-%Y')
+            no_matches = no_matches.sort_values(by='Datum')
+
+            # reset the index of no_matches
+            no_matches = no_matches.reset_index(drop=True)
+
+            #merged = merged[merged["Betrag_1"] == numpy.NaN]
+            pd.set_option('display.max_rows', None)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.width', None)
+            pd.set_option('display.max_colwidth', -1)
+            no_matches["Datum"] = no_matches["Datum"].dt.strftime('%d-%m-%Y')
+            print(no_matches)
+
+            invalid["Datum"] = invalid["Datum"].dt.strftime('%d-%m-%Y')
+            missing["Datum"] = missing["Datum"].dt.strftime('%d-%m-%Y')
             return tables([invalid.to_html(classes="table data-sticky-header r-flag", index=False), missing.to_html(classes="table data-sticky-header  g-flag", index=False)])
 
     return index(err="Bitte wählen Sie mindestens 2 Dateien aus.")
@@ -77,4 +135,4 @@ def index(err=None):
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port="80", debug=False)
+    app.run(host="0.0.0.0", port="80", debug=True)
