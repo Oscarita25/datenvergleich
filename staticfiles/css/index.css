@@ -27,6 +27,14 @@ div#content {
     background-color: var(--accent);
 }
 
+.togglebody {
+    transition: height 2s;
+}
+
+.bg-accent {
+    background-color: var(--accent);
+}
+
 .r-flag{
     background-color: var(--primary-2);
 }

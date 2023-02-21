@@ -64,9 +64,9 @@ def readfile():
                     elif round(result_csv[key], 0) == round(value, 0):
                         continue
                     else:
-                        invalid = invalid.append({'Datum': key,"Datev": value,"Bank": result_csv[key]}, ignore_index=True)
+                        invalid = invalid.append({'Datum': key,"Datev": round(value, 2),"Bank": round(result_csv[key], 2)}, ignore_index=True)
                 else:
-                    missing = missing.append({'Datum': key, "Betrag": value}, ignore_index=True)
+                    missing = missing.append({'Datum': key, "Betrag": round(value, 2)}, ignore_index=True)
 
             invalid = invalid.sort_values(by='Datum')
             missing = missing.sort_values(by='Datum')
@@ -109,17 +109,22 @@ def readfile():
             # reset the index of no_matches
             no_matches = no_matches.reset_index(drop=True)
 
-            #merged = merged[merged["Betrag_1"] == numpy.NaN]
-            pd.set_option('display.max_rows', None)
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.width', None)
-            pd.set_option('display.max_colwidth', -1)
-            no_matches["Datum"] = no_matches["Datum"].dt.strftime('%d-%m-%Y')
-            print(no_matches)
+            # just debug for pandas
+            #pd.set_option('display.max_rows', None)
+            #pd.set_option('display.max_columns', None)
+            #pd.set_option('display.width', None)
+            #pd.set_option('display.max_colwidth', -1)
 
+            invalid["Differenz"] = round(abs(invalid["Bank"] - invalid["Datev"]), 2)
+
+            no_matches["Datum"] = no_matches["Datum"].dt.strftime('%d-%m-%Y')
             invalid["Datum"] = invalid["Datum"].dt.strftime('%d-%m-%Y')
             missing["Datum"] = missing["Datum"].dt.strftime('%d-%m-%Y')
-            return tables([invalid.to_html(classes="table data-sticky-header r-flag", index=False), missing.to_html(classes="table data-sticky-header  g-flag", index=False)])
+
+            # turn dataframes into dictonaries
+            invalid_dict, missing_dict, no_matches_dict = invalid.to_dict(), missing.to_dict(), no_matches.to_dict('split')
+
+            return tables([invalid_dict, missing_dict, no_matches_dict])
 
     return index(err="Bitte wählen Sie mindestens 2 Dateien aus.")
 
