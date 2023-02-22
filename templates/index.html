@@ -1,5 +1,6 @@
 <head>
     <script src="../staticfiles/js/bootstrap.bundle.min.js"></script>
+    <script src="../staticfiles/js/index.js"></script>
     <link rel="stylesheet" href="../staticfiles/css/bootstrap.min.css">
     <link rel="stylesheet" href="../staticfiles/css/index.css">
 </head>
@@ -14,17 +15,16 @@
     </header>
     
     <section class="row">
-        <div class="col-1"></div>
-        <div class="col-10" id="content">
+        <div class="col-12" id="content">
             {% if not tables%}
                 <form class="row justify-content-center" action="{{ url_for('readfile')}}" method="post" enctype="multipart/form-data">
                     <div class="form-group col-5">
-                    <label class="form-label"  for="file1">Bank (.csv):</label>
-                    <input type="file" class="form-control form-control-file" id="file1" name="file1" accept=".csv">
+                        <label class="form-label"  for="file1">Bank (.csv):</label>
+                        <input type="file" class="form-control form-control-file" id="file1" name="file1" accept=".csv">
                     </div>
                     <div class="form-group col-5">
-                    <label class="form-label" for="file2">Datev (.xlsx):</label>
-                    <input type="file" class="form-control form-control-file" id="file2" name="file2" accept=".xlsx">
+                        <label class="form-label" for="file2">Datev (.xlsx):</label>
+                        <input type="file" class="form-control form-control-file" id="file2" name="file2" accept=".xlsx">
                     </div>
                     <div class="col-12">
                         <br>
@@ -42,18 +42,73 @@
             {% else %}
                 <div class="row mt-3">
                     <div class="col-1"></div>
-                    <div class="col-4 heading">
+                    <div class="col-5 heading">
                         <p class="display-6 text-center">Fehler</p>
-                        {{tables[0]|safe}}
+                        <table border="1" class="table table-hover r-flag">
+                            <thead>
+                                <tr>
+                                    {% for key in tables[0] %}
+                                    <th >{{key}}</th>
+                                    {% endfor %}
+                                    <th>Buchungen</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            {% for x in range(tables[0]['Datum']|length) %}
+                                <tr onclick="toggleinfo({{x}})">
+                                    {% for key, value in tables[0].items() %}
+                                    {% if key == 'Differenz'%} 
+                                        <td class="text-danger">{{ value[x] }}</td>
+                                    {% else %}
+                                        <td>{{ value[x] }}</td>
+                                    {% endif %}
+                                    {% endfor %}
+                                    <td></td>
+                                </tr>
+                                <tbody class="toggleinfo-{{x}}" style="display: none;">
+                                {% for i in tables[2]['index'] %}
+                                {%if tables[2]['data'][i][0] == tables[0]['Datum'][x]%}
+                                <tr class="bg-accent">
+                                    <td>{{ tables[2]['data'][i][0] }}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>{{ tables[2]['data'][i][1] }}</td>
+                                </tr>
+                                {% endif%}
+                                {% endfor%}
+                                </tbody>
+                            {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-2"></div>
+                    <div class="col-1"></div>
                     <div class="col-4 heading">
                         <p class="display-6 text-center">Nicht Vorhanden</p>
-                        {{tables[1]|safe}}
+                        <table border="1" class="table data-sticky-header g-flag">
+                            <thead>
+                                <tr style="text-align: right;">
+                                    {% for key in tables[1] %}
+                                    <th>{{key}}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for x in range(tables[1]['Datum']|length) %}
+                                <tr>
+                                    {% for key, value in tables[1].items() %}
+                                        <td>{{ value[x] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                     <div class="col-1"></div>
                 </div>
-                <button class="btn" onclick="window.location.href='/'">zurück</button>
+                <button class="btn offset-11" onclick="window.location.href='/'">zurück</button>
                 <br>
             {% endif %}
             <br>
