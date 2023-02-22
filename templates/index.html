@@ -86,9 +86,7 @@
                     <div class="col-1"></div>
                     <div class="col-4 heading">
                         <p class="display-6 text-center">Nicht Vorhanden</p>
-                        <table border="1" class="table table-hover data-sticky-header g-flag">
-                            {% for key, value in tables[1].items() %}
-                            {% if loop.index == 1%}
+                        <table border="1" class="table data-sticky-header g-flag">
                             <thead>
                                 <tr style="text-align: right;">
                                     {% for key in tables[1] %}
@@ -96,18 +94,16 @@
                                     {% endfor %}
                                 </tr>
                             </thead>
-                            {% else %}
+
                             <tbody>
                                 {% for x in range(tables[1]['Datum']|length) %}
-                                <tr style="text-align: right;">
+                                <tr>
                                     {% for key, value in tables[1].items() %}
-                                        <td>{{ value[0] }}</td>
+                                        <td>{{ value[x] }}</td>
                                     {% endfor %}
                                 </tr>
-                                {% endfor %}
-                            </tbody>
-                            {% endif%}
                             {% endfor %}
+                            </tbody>
                         </table>
                     </div>
                     <div class="col-1"></div>

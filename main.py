@@ -3,7 +3,6 @@ from flask import Flask, render_template, request
 import pandas as pd
 import datetime
 
-
 app = Flask(__name__, static_folder='staticfiles')
 UPLOAD_FOLDER = '.'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -32,21 +31,21 @@ def readfile():
             csv = csv.rename(columns={"Buchungstag": "Datum"})
             csv['Betrag'] = csv['Betrag'].str.replace(",", ".").astype(float)
 
-            csv["Datum"] = csv["Datum"].apply(lambda x: datetime.datetime.strptime(x, "%d.%m.%y").strftime("%d.%m.%Y") if len(x) <= 8 else x)
+            csv["Datum"] = csv["Datum"].apply(
+                lambda x: datetime.datetime.strptime(x, "%d.%m.%y").strftime("%d.%m.%Y") if len(x) <= 8 else x)
             csv = csv.iloc[::-1]
             csv = csv.reset_index()
             csv = csv[["Datum", "Betrag"]]
             csv['Datum'] = pd.to_datetime(csv['Datum'], format='%d.%m.%Y', dayfirst=True)
             csv = csv.sort_values(by='Datum')
 
-
             # Soll und Haben zusammenfuehren zu "Betrag"
-            xl["Betrag"] = xl["Umsatz Haben"].apply(lambda x: x * -1 if pd.notna(x) and isinstance(x, (int, float)) else x)
+            xl["Betrag"] = xl["Umsatz Haben"].apply(
+                lambda x: x * -1 if pd.notna(x) and isinstance(x, (int, float)) else x)
             xl["Betrag"].fillna(xl["Umsatz Soll"], inplace=True)
             xl = xl.drop(["Umsatz Soll", "Umsatz Haben", ], axis=1)
             xl['Datum'] = pd.to_datetime(xl['Datum'], format='%d.%m.%Y', dayfirst=True)
             xl = xl.sort_values(by='Datum')
-
 
             # Betraege Summieren fuer jedes Datum
             result_csv = csv.groupby("Datum").sum().to_dict()['Betrag']
@@ -64,7 +63,9 @@ def readfile():
                     elif round(result_csv[key], 0) == round(value, 0):
                         continue
                     else:
-                        invalid = invalid.append({'Datum': key,"Datev": round(value, 2),"Bank": round(result_csv[key], 2)}, ignore_index=True)
+                        invalid = invalid.append(
+                            {'Datum': key, "Datev": round(value, 2), "Bank": round(result_csv[key], 2)},
+                            ignore_index=True)
                 else:
                     missing = missing.append({'Datum': key, "Betrag": round(value, 2)}, ignore_index=True)
 
@@ -99,9 +100,11 @@ def readfile():
             no_matches = pd.DataFrame(columns=['Datum', 'Betrag'])
             for key in non_matching_keys:
                 if key in set(xl_filtered['key']):
-                    no_matches = no_matches.append(xl_filtered.loc[xl_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
+                    no_matches = no_matches.append(
+                        xl_filtered.loc[xl_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
                 else:
-                    no_matches = no_matches.append(csv_filtered.loc[csv_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
+                    no_matches = no_matches.append(
+                        csv_filtered.loc[csv_filtered['key'] == key][['Datum', 'Betrag']].iloc[0])
 
             no_matches['Datum'] = pd.to_datetime(no_matches['Datum'], format='%d-%m-%Y')
             no_matches = no_matches.sort_values(by='Datum')
@@ -110,10 +113,10 @@ def readfile():
             no_matches = no_matches.reset_index(drop=True)
 
             # just debug for pandas
-            #pd.set_option('display.max_rows', None)
-            #pd.set_option('display.max_columns', None)
-            #pd.set_option('display.width', None)
-            #pd.set_option('display.max_colwidth', -1)
+            # pd.set_option('display.max_rows', None)
+            # pd.set_option('display.max_columns', None)
+            # pd.set_option('display.width', None)
+            # pd.set_option('display.max_colwidth', -1)
 
             invalid["Differenz"] = round(abs(invalid["Bank"] - invalid["Datev"]), 2)
 
@@ -122,7 +125,8 @@ def readfile():
             missing["Datum"] = missing["Datum"].dt.strftime('%d-%m-%Y')
 
             # turn dataframes into dictonaries
-            invalid_dict, missing_dict, no_matches_dict = invalid.to_dict(), missing.to_dict(), no_matches.to_dict('split')
+            invalid_dict, missing_dict, no_matches_dict = invalid.to_dict(), missing.to_dict(), no_matches.to_dict(
+                'split')
 
             return tables([invalid_dict, missing_dict, no_matches_dict])
 
@@ -140,4 +144,4 @@ def index(err=None):
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port="80", debug=True)
+    app.run(host="0.0.0.0", port="80", debug=False)
